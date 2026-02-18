@@ -2,28 +2,43 @@
 require('dotenv').config();
 const API_KEY = process.env.API_KEY;
 
-async function fetchWeather(city) {
+function fetchWeather(city, callback) {
   const url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&appid=${API_KEY}&units=metric&lang=fr`;
-  try {
-    const res = await fetch(url);
-    const data = await res.json();
-    if (!res.ok) {
-      console.error('API error:', data);
-      return;
-    }
-
-    const description = data.weather[0].description;
-    const temperature = data.main.temp;
-    const humidity = data.main.humidity;
-
-    console.log('Ville:', city);
-    console.log('Description:', description);
-    console.log('Température (°C):', temperature);
-    console.log('Humidité (%):', humidity);
-  } catch (err) {
-    console.error('Fetch failed:', err.message || err);
-  }
+  
+  fetch(url)
+    .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+    .then(({ ok, data }) => {
+      if (!ok) {
+        callback(new Error('API error: ' + JSON.stringify(data)), null);
+        return;
+      }
+      
+      const description = data.weather[0].description;
+      const temperature = data.main.temp;
+      const humidity = data.main.humidity;
+      
+      callback(null, {
+        city,
+        description,
+        temperature,
+        humidity
+      });
+    })
+    .catch((err) => {
+      callback(err, null);
+    });
 }
 
 // Run for Sousse
-fetchWeather('Sousse');
+fetchWeather('Sousse', (error, result) => {
+  if (error) {
+    console.error('Fetch failed:', error.message || error);
+    return;
+  }
+  
+  console.log('Ville:', result.city);
+  console.log('Description:', result.description);
+  console.log('Température (°C):', result.temperature);
+  console.log('Humidité (%):', result.humidity);
+});
+ 
